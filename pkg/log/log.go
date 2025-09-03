@@ -63,7 +63,7 @@ func Init(level string, opts ...Option) {
 	})
 }
 
-func Info(msg string, fields ...map[string]interface{}) {
+func Info(msg string, fields ...map[string]any) {
 	if len(fields) > 0 {
 		mergedFields := mergeFields(fields...)
 		log.Info().Fields(mergedFields).Msg(msg)
@@ -72,7 +72,7 @@ func Info(msg string, fields ...map[string]interface{}) {
 	}
 }
 
-func Warn(msg string, fields ...map[string]interface{}) {
+func Warn(msg string, fields ...map[string]any) {
 	if len(fields) > 0 {
 		mergedFields := mergeFields(fields...)
 		log.Warn().Fields(mergedFields).Msg(msg)
@@ -81,7 +81,7 @@ func Warn(msg string, fields ...map[string]interface{}) {
 	}
 }
 
-func Debug(msg string, fields ...map[string]interface{}) {
+func Debug(msg string, fields ...map[string]any) {
 	if len(fields) > 0 {
 		mergedFields := mergeFields(fields...)
 		log.Debug().Fields(mergedFields).Msg(msg)
@@ -89,7 +89,7 @@ func Debug(msg string, fields ...map[string]interface{}) {
 		log.Debug().Msg(msg)
 	}
 }
-func Error(err error, msg string, fields ...map[string]interface{}) {
+func Error(err error, msg string, fields ...map[string]any) {
 	event := log.Error().Err(err)
 	if len(fields) > 0 {
 		mergedFields := mergeFields(fields...)
