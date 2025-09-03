@@ -16,6 +16,16 @@ var (
 
 type Option func(*zerolog.Logger)
 
+func mergeFields(fields ...map[string]interface{}) map[string]interface{} {
+	merged := make(map[string]interface{})
+	for _, f := range fields {
+		for k, v := range f {
+			merged[k] = v
+		}
+	}
+	return merged
+}
+
 func WithMetadata(meta *meta.Metadata) Option {
 	return func(l *zerolog.Logger) {
 		*l = l.With().
@@ -53,18 +63,38 @@ func Init(level string, opts ...Option) {
 	})
 }
 
-func Info(msg string, fields map[string]interface{}) {
-	log.Info().Fields(fields).Msg(msg)
+func Info(msg string, fields ...map[string]interface{}) {
+	if len(fields) > 0 {
+		mergedFields := mergeFields(fields...)
+		log.Info().Fields(mergedFields).Msg(msg)
+	} else {
+		log.Info().Msg(msg)
+	}
 }
 
-func Error(msg string, fields map[string]interface{}) {
-	log.Error().Fields(fields).Msg(msg)
+func Warn(msg string, fields ...map[string]interface{}) {
+	if len(fields) > 0 {
+		mergedFields := mergeFields(fields...)
+		log.Warn().Fields(mergedFields).Msg(msg)
+	} else {
+		log.Warn().Msg(msg)
+	}
 }
 
-func Debug(msg string, fields map[string]interface{}) {
-	log.Debug().Fields(fields).Msg(msg)
+func Debug(msg string, fields ...map[string]interface{}) {
+	if len(fields) > 0 {
+		mergedFields := mergeFields(fields...)
+		log.Debug().Fields(mergedFields).Msg(msg)
+	} else {
+		log.Debug().Msg(msg)
+	}
 }
-
-func Warn(msg string, fields map[string]interface{}) {
-	log.Warn().Fields(fields).Msg(msg)
+func Error(err error, msg string, fields ...map[string]interface{}) {
+	event := log.Error().Err(err)
+	if len(fields) > 0 {
+		mergedFields := mergeFields(fields...)
+		event.Fields(mergedFields).Msg(msg)
+	} else {
+		event.Msg(msg)
+	}
 }
