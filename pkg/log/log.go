@@ -51,8 +51,6 @@ func Init(level string, opts ...Option) {
 		if err != nil {
 			lvl = zerolog.InfoLevel
 		}
-
-		// Log seviyesi Debug veya altındaysa caller ekler.
 		var loggerContext zerolog.Context
 		if lvl <= zerolog.DebugLevel {
 			loggerContext = zerolog.New(os.Stdout).Level(lvl).With().Timestamp().Caller()
