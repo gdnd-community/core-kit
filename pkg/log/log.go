@@ -16,8 +16,8 @@ var (
 
 type Option func(*zerolog.Logger)
 
-func mergeFields(fields ...map[string]interface{}) map[string]interface{} {
-	merged := make(map[string]interface{})
+func mergeFields(fields ...map[string]any) map[string]interface{} {
+	merged := make(map[string]any)
 	for _, f := range fields {
 		for k, v := range f {
 			merged[k] = v
@@ -30,16 +30,19 @@ func WithMetadata(meta *meta.Metadata) Option {
 	return func(l *zerolog.Logger) {
 		*l = l.With().
 			Str("hostname", meta.Hostname).
-			Str("pod_name", meta.PodName).
-			Str("namespace", meta.Namespace).
-			Str("node_name", meta.NodeName).
 			Str("app_name", meta.AppName).
 			Str("app_version", meta.AppVersion).
-			Str("env", meta.Env).
-			Str("instance_id", meta.InstanceID).
-			Logger()
+			Str("env", meta.Env).Logger()
 	}
 }
+
+func WithDevelopmentMode() Option {
+	return func(l *zerolog.Logger) {
+		consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+		*l = l.Output(consoleWriter)
+	}
+}
+
 func Init(level string, opts ...Option) {
 	initOnce.Do(func() {
 		zerolog.TimeFieldFormat = time.RFC3339
@@ -49,11 +52,15 @@ func Init(level string, opts ...Option) {
 			lvl = zerolog.InfoLevel
 		}
 
-		baseLogger := zerolog.New(os.Stdout).
-			Level(lvl).
-			With().
-			Timestamp().
-			Logger()
+		// Log seviyesi Debug veya altındaysa caller ekler.
+		var loggerContext zerolog.Context
+		if lvl <= zerolog.DebugLevel {
+			loggerContext = zerolog.New(os.Stdout).Level(lvl).With().Timestamp().Caller()
+		} else {
+			loggerContext = zerolog.New(os.Stdout).Level(lvl).With().Timestamp()
+		}
+
+		baseLogger := loggerContext.Logger()
 
 		for _, opt := range opts {
 			opt(&baseLogger)
@@ -89,6 +96,7 @@ func Debug(msg string, fields ...map[string]any) {
 		log.Debug().Msg(msg)
 	}
 }
+
 func Error(err error, msg string, fields ...map[string]any) {
 	event := log.Error().Err(err)
 	if len(fields) > 0 {

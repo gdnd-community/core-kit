@@ -11,8 +11,8 @@ func Test_Logger(t *testing.T) {
 	metas := meta.Discover("CoreKit Test", "1.0.0", "Local")
 	Init("info", WithMetadata(metas))
 
-	Info("Test with microservice core-kit", map[string]interface{}{
-		"module": "test",
+	Info("Test with microservice core-kit", map[string]any{
+		"model": "1.0",
 	})
 }
 
