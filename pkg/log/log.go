@@ -1,7 +1,10 @@
 package log
 
 import (
+	"fmt"
 	"os"
+	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,7 +19,7 @@ var (
 
 type Option func(*zerolog.Logger)
 
-func mergeFields(fields ...map[string]any) map[string]interface{} {
+func mergeFields(fields ...map[string]any) map[string]any {
 	merged := make(map[string]any)
 	for _, f := range fields {
 		for k, v := range f {
@@ -47,18 +50,55 @@ func Init(level string, opts ...Option) {
 	initOnce.Do(func() {
 		zerolog.TimeFieldFormat = time.RFC3339
 
+		devMode := false
+		for _, opt := range opts {
+			if fmt.Sprintf("%T", opt) == "log.WithDevelopmentMode" {
+				devMode = true
+				break
+			}
+		}
+
+		if devMode {
+			zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
+				pcs := make([]uintptr, 10)
+				n := runtime.Callers(4, pcs)
+				frames := runtime.CallersFrames(pcs[:n])
+
+				for {
+					f, more := frames.Next()
+					if !strings.Contains(f.File, "github.com/gdnd-community/core-kit/pkg/log/") &&
+						!strings.Contains(f.File, "github.com/rs/zerolog") {
+						short := f.File
+						if idx := strings.LastIndex(f.File, "/"); idx != -1 {
+							short = f.File[idx+1:]
+						}
+						return fmt.Sprintf("%s:%d", short, f.Line)
+					}
+					if !more {
+						break
+					}
+				}
+				return fmt.Sprintf("%s:%d", file, line)
+			}
+		}
+
 		lvl, err := zerolog.ParseLevel(level)
 		if err != nil {
 			lvl = zerolog.InfoLevel
 		}
 
 		var loggerContext zerolog.Context
-		if lvl <= zerolog.DebugLevel {
+		if devMode {
 			loggerContext = zerolog.New(os.Stdout).
 				Level(lvl).
 				With().
 				Timestamp().
-				CallerWithSkipFrameCount(3) // Fix: We added this usage for wrapper functions. 
+				CallerWithSkipFrameCount(0)
+		} else if lvl <= zerolog.DebugLevel {
+			loggerContext = zerolog.New(os.Stdout).
+				Level(lvl).
+				With().
+				Timestamp()
 		} else {
 			loggerContext = zerolog.New(os.Stdout).
 				Level(lvl).
@@ -78,8 +118,7 @@ func Init(level string, opts ...Option) {
 
 func Info(msg string, fields ...map[string]any) {
 	if len(fields) > 0 {
-		mergedFields := mergeFields(fields...)
-		log.Info().Fields(mergedFields).Msg(msg)
+		log.Info().Fields(mergeFields(fields...)).Msg(msg)
 	} else {
 		log.Info().Msg(msg)
 	}
@@ -87,8 +126,7 @@ func Info(msg string, fields ...map[string]any) {
 
 func Warn(msg string, fields ...map[string]any) {
 	if len(fields) > 0 {
-		mergedFields := mergeFields(fields...)
-		log.Warn().Fields(mergedFields).Msg(msg)
+		log.Warn().Fields(mergeFields(fields...)).Msg(msg)
 	} else {
 		log.Warn().Msg(msg)
 	}
@@ -96,8 +134,7 @@ func Warn(msg string, fields ...map[string]any) {
 
 func Debug(msg string, fields ...map[string]any) {
 	if len(fields) > 0 {
-		mergedFields := mergeFields(fields...)
-		log.Debug().Fields(mergedFields).Msg(msg)
+		log.Debug().Fields(mergeFields(fields...)).Msg(msg)
 	} else {
 		log.Debug().Msg(msg)
 	}
@@ -106,9 +143,8 @@ func Debug(msg string, fields ...map[string]any) {
 func Error(err error, msg string, fields ...map[string]any) {
 	event := log.Error().Err(err)
 	if len(fields) > 0 {
-		mergedFields := mergeFields(fields...)
-		event.Fields(mergedFields).Msg(msg)
+		event.Fields(mergeFields(fields...)).Caller().Msg(msg)
 	} else {
-		event.Msg(msg)
+		event.Caller().Msg(msg)
 	}
 }
