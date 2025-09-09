@@ -51,11 +51,19 @@ func Init(level string, opts ...Option) {
 		if err != nil {
 			lvl = zerolog.InfoLevel
 		}
+
 		var loggerContext zerolog.Context
 		if lvl <= zerolog.DebugLevel {
-			loggerContext = zerolog.New(os.Stdout).Level(lvl).With().Timestamp().Caller()
+			loggerContext = zerolog.New(os.Stdout).
+				Level(lvl).
+				With().
+				Timestamp().
+				CallerWithSkipFrameCount(3) // Fix: We added this usage for wrapper functions. 
 		} else {
-			loggerContext = zerolog.New(os.Stdout).Level(lvl).With().Timestamp()
+			loggerContext = zerolog.New(os.Stdout).
+				Level(lvl).
+				With().
+				Timestamp()
 		}
 
 		baseLogger := loggerContext.Logger()

@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/gdnd-community/core-kit/pkg/meta"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -128,9 +127,7 @@ func Benchmark_Logger_Simple(b *testing.B) {
 }
 
 func Benchmark_Logger_WithFields(b *testing.B) {
-	initOnce = sync.Once{}
-	null, _ := os.Open(os.DevNull)
-	baseLogger := zerolog.New(null).Level(zerolog.InfoLevel).With().Logger()
+	Init("debug")
 
 	fields := map[string]any{
 		"request_id":  "12345",
@@ -141,6 +138,6 @@ func Benchmark_Logger_WithFields(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		baseLogger.Info().Fields(fields).Msg("test with fields")
+		Debug("some message", fields)
 	}
 }
